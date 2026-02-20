@@ -77,13 +77,43 @@ async def get_scenario(scenario_id: str):
     doc["id"] = str(doc.pop("_id"))
     return doc
 
+from .engine.simulator import HAISimulatorEngine
+
 @app.post("/scenarios/{scenario_id}/run")
 async def run_simulation(scenario_id: str):
     """
-    [WIP] Innesca l'engine SimPy per lo scenario richiesto.
-    Al momento è un Placeholder.
+    Innesca l'engine SimPy per lo scenario richiesto.
+    Salva il risultato EventLog risultante in MongoDB.
     """
-    # 1. Recupero scenario
-    # 2. Passo il dict all'engine Simpy
-    # 3. Restituisco l'ID della run che si sta eseguendo (async worker)
-    return {"message": f"Simulation initiated for scenario {scenario_id}", "run_id": "placeholder_run"}
+    if not ObjectId.is_valid(scenario_id):
+         raise HTTPException(status_code=400, detail="Invalid ID format")
+    
+    # 1. Recupero scenario (Validazione Dati Base)
+    scenario_dict = await db.scenarios.find_one({"_id": ObjectId(scenario_id)})
+    if scenario_dict is None:
+        raise HTTPException(status_code=404, detail="Scenario non trovato")
+    
+    scenario_dict["scenario_id"] = str(scenario_dict.pop("_id"))
+    
+    # 2. Avvio Simulatore Engine Sincrono
+    # In un vero sistema heavy-load useremmo Celery, ma per l'MVP il worker python va bene.
+    engine = HAISimulatorEngine(scenario_dict)
+    event_log = engine.run()
+    
+    # 3. Salvataggio Log in Mongo
+    run_doc = {
+        "scenario_id": scenario_id,
+        "scenario_name": scenario_dict.get("scenario_meta", {}).get("name", "Unknown"),
+        "timestamp": os.getenv("CURRENT_TIME", "Now"), # or datetime.utcnow()
+        "ticks_simulated": engine.max_ticks,
+        "event_log_size": len(event_log),
+        "events": event_log
+    }
+    
+    res = await db.simulation_runs.insert_one(run_doc)
+    
+    return {
+        "message": f"Simulazione completata.", 
+        "run_id": str(res.inserted_id),
+        "total_events": len(event_log)
+    }
