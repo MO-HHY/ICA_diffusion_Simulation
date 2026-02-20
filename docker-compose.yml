@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: hai_backend
     ports:
-      - "8000:8000"
+      - "8080:8000"
     environment:
       - MONGO_URL=mongodb://root:example@mongo:27017/
       - ENVIRONMENT=development
