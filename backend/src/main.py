@@ -21,8 +21,18 @@ async def lifespan(app: FastAPI):
     if client:
         client.close()
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="HAI Simulator API", version="0.1.0", lifespan=lifespan)
 
+# Setup CORS per il frontend locale
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 @app.get("/")
 async def root():
     return {"message": "HAI Simulator API is running"}
@@ -117,3 +127,18 @@ async def run_simulation(scenario_id: str):
         "run_id": str(res.inserted_id),
         "total_events": len(event_log)
     }
+
+@app.get("/runs/{run_id}")
+async def get_run_results(run_id: str):
+    """
+    Recupera i risultati di una simulazione (incluso l'array events)
+    """
+    if not ObjectId.is_valid(run_id):
+         raise HTTPException(status_code=400, detail="Invalid ID format")
+    
+    doc = await db.simulation_runs.find_one({"_id": ObjectId(run_id)})
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Run non trovata")
+    
+    doc["id"] = str(doc.pop("_id"))
+    return doc
