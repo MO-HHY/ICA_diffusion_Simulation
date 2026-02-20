@@ -1,0 +1,33 @@
+{
+  "scenario_meta": {
+    "name": "MRSA Baseline Minimal Layout",
+    "seed": 10584,
+    "description": "Scenario minimo base per start up MVP."
+  },
+  "hospital": {
+    "rooms": 4,
+    "isolation_ids": ["R_01"]
+  },
+  "staffing": [
+    { "role": "NURSE", "count": 1, "compliance_modifier": 0.8 },
+    { "role": "CLEANER", "count": 1, "cleaning_efficacy": 0.85 }
+  ],
+  "patients": [
+    { "id": "P_INDEX", "room": "R_01", "state": "INFECTED", "susceptibility": 1.0 },
+    { "id": "P_001", "room": "R_02", "state": "SUSCEPTIBLE", "susceptibility": 0.9 },
+    { "id": "P_002", "room": "R_03", "state": "SUSCEPTIBLE", "susceptibility": 0.2 }
+  ],
+  "pathogen": {
+    "type": "MRSA",
+    "transmission_prob": 0.15,
+    "decay_surface_half_life_h": 72
+  },
+  "hygiene": {
+    "base_compliance": 0.70,
+    "gel_log_reduction": 0.99
+  },
+  "simulation": {
+    "max_ticks": 1000,
+    "tick_unit_minutes": 10
+  }
+}
